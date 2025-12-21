@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Subscriber Client</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #e3f2fd; }
+        .container { background: white; padding: 20px; border-radius: 8px; max-width: 600px; margin: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { color: #1976d2; }
+        .controls { border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 15px; }
+        .control-group { margin-bottom: 10px; }
+        .btn-sub { background-color: #4caf50; color: white; border: none; padding: 8px 15px; cursor: pointer; margin-right: 5px; border-radius: 4px;}
+        .btn-unsub { background-color: #f44336; color: white; border: none; padding: 8px 15px; cursor: pointer; margin-right: 15px; border-radius: 4px;}
+        
+        /* Disabled button style */
+        .btn-sub:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        #feed { height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: #fafafa; }
+        .alert-item { padding: 10px; margin-bottom: 5px; border-radius: 4px; border-left: 5px solid #1976d2; background: white; animation: fadeIn 0.5s; }
+        .timestamp { font-size: 0.8em; color: #888; float: right; }
+        .topic-tag { font-weight: bold; color: #1976d2; text-transform: uppercase; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🔔 User Notifications</h2>
+    
+    <div class="controls">
+        <p><strong>Manage Subscriptions:</strong></p>
+        
+        <div class="control-group">
+            <span>🌍 General News:</span>
+            <button class="btn-sub" onclick="subscribe('news')">Subscribe</button>
+            <button class="btn-unsub" onclick="unsubscribe('news')">Unsubscribe</button>
+        </div>
+
+        <div class="control-group">
+            <span>⚽ Sports:</span>
+            <button class="btn-sub" onclick="subscribe('sports')">Subscribe</button>
+            <button class="btn-unsub" onclick="unsubscribe('sports')">Unsubscribe</button>
+        </div>
+
+        <div class="control-group">
+            <span>⛈️ Weather:</span>
+            <button class="btn-sub" onclick="subscribe('weather')">Subscribe</button>
+            <button class="btn-unsub" onclick="unsubscribe('weather')">Unsubscribe</button>
+        </div>
+    </div>
+
+    <h3>Live Feed:</h3>
+    <div id="feed">
+        <div style="color:#aaa; text-align:center;">Waiting for alerts...</div>
+    </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+    const feed = document.getElementById('feed');
+    
+    // FIX 2: Create a "Set" to remember active subscriptions
+    const mySubscriptions = new Set();
+
+    function subscribe(topic) {
+        // CHECK: Are we already subscribed?
+        if (mySubscriptions.has(topic)) {
+            alert(`You are already subscribed to ${topic.toUpperCase()}!`);
+            return; // Stop here, do not send request to server
+        }
+
+        // If not, proceed
+        socket.emit('subscribe', topic);
+        mySubscriptions.add(topic); // Add to our memory
+    }
+
+    function unsubscribe(topic) {
+        // Optional: Check if we are actually subscribed before unsubscribing
+        if (!mySubscriptions.has(topic)) {
+            alert(`You are not subscribed to ${topic.toUpperCase()}.`);
+            return;
+        }
+
+        socket.emit('unsubscribe', topic);
+        mySubscriptions.delete(topic); // Remove from our memory
+    }
+
+    // LISTEN: Receive system messages
+    socket.on('system_message', (msg) => {
+        addLog(msg, '#666');
+    });
+
+    // LISTEN: Receive Actual News
+    socket.on('notification', (data) => {
+        const html = `
+            <div class="alert-item">
+                <span class="topic-tag">${data.topic}</span>
+                <span class="timestamp">${data.timestamp}</span>
+                <p>${data.text}</p>
+            </div>
+        `;
+        if(feed.innerText.includes("Waiting")) feed.innerHTML = "";
+        feed.innerHTML = html + feed.innerHTML;
+    });
+
+    function addLog(text, color) {
+        if(feed.innerText.includes("Waiting")) feed.innerHTML = "";
+        feed.innerHTML = `<div style="color:${color}; font-size:0.9em; padding:5px;"><em>${text}</em></div>` + feed.innerHTML;
+    }
+</script>
+
+</body>
+</html>

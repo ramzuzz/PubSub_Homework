@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Publisher (Admin)</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f0f0f0; }
+        .container { background: white; padding: 20px; border-radius: 8px; max-width: 500px; margin: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { color: #d32f2f; }
+        select, input, button { width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box; }
+        button { background-color: #d32f2f; color: white; border: none; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #b71c1c; }
+        #status { margin-top: 10px; color: green; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📢 News Publisher</h2>
+    <p>Select a topic and send an alert to all subscribers.</p>
+
+    <label><strong>Topic:</strong></label>
+    <select id="topic">
+        <option value="news">🌍 General News</option>
+        <option value="sports">⚽ Sports</option>
+        <option value="weather">⛈️ Weather Alerts</option>
+    </select>
+
+    <label><strong>Message:</strong></label>
+    <input type="text" id="message" placeholder="Type your alert here..." autocomplete="off">
+
+    <button onclick="publishMessage()">Publish Alert</button>
+    <div id="status"></div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+
+    function publishMessage() {
+        const topic = document.getElementById('topic').value;
+        const message = document.getElementById('message').value;
+
+        if(message.trim() === "") {
+            alert("Please type a message!");
+            return;
+        }
+
+        // SEND event to Server
+        socket.emit('publish_news', { topic, message });
+
+        // Visual feedback
+        const status = document.getElementById('status');
+        status.innerText = `Sent to [${topic}]: "${message}"`;
+        
+        // Clear input
+        document.getElementById('message').value = '';
+        
+        // Clear success message after 2 seconds
+        setTimeout(() => { status.innerText = ''; }, 2000);
+    }
+</script>
+
+</body>
+</html>
